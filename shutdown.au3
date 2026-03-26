@@ -1,7 +1,7 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Version=Beta
 #AutoIt3Wrapper_Icon=shutdown.ico
-#AutoIt3Wrapper_Res_Fileversion=4.0.0.2
+#AutoIt3Wrapper_Res_Fileversion=4.0.0.1
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
