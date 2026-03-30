@@ -50,38 +50,11 @@ FileInstall("beep-07.wav", $beep_07_wav, 1)
 ; =============================================================================
 ; CONSTANTS
 ; =============================================================================
-; Query Windows for the real dialog background color (COLOR_BTNFACE = 15).
-; Using -1 only tells AutoIt to "forget" the color but does NOT force a repaint,
-; so an orange/red window stays orange until Windows decides to redraw on its own.
-; Querying the actual RGB value and calling RedrawWindow guarantees an immediate reset.
-Global Const $COLOR_BK_DEFAULT  = _WinAPIGetBtnFace() ; Real Windows gray (theme-aware)
-Global Const $COLOR_BK_WARNING  = 0xFF6600  ; Orange  – last 30 s (flash phase A)
-Global Const $COLOR_BK_ALERT    = 0xCC0000  ; Red     – reserved for future use
-Global Const $COLOR_TEXT_NORMAL = 0x000000  ; Black   – normal state
-Global Const $COLOR_TEXT_RED    = 0xBB0000  ; Dark red – warning text on default bg
-;~ Global Const $COLOR_WHITE       = 0xFFFFFF  ; White   – text on coloured bg
-
-; Returns the current Windows dialog-background color (COLOR_BTNFACE).
-; GetSysColor() returns a COLORREF (0x00BBGGRR), so bytes must be swapped to AutoIt's 0xRRGGBB.
-Func _WinAPIGetBtnFace()
-    Local $iBGR = DllCall("user32.dll", "int", "GetSysColor", "int", 15)[0]
-    ; Swap R and B channels:  0x00BBGGRR  →  0xRRGGBB
-    Local $r = BitAND($iBGR,       0x0000FF)
-    Local $g = BitAND(BitShift($iBGR, -8),  0xFF) ; BitShift with negative = left shift
-    ; Corrected swap using BitAND and division/multiplication:
-    $r = BitAND($iBGR, 0xFF)
-    $g = BitAND(Int($iBGR / 0x100), 0xFF)
-    Local $b = BitAND(Int($iBGR / 0x10000), 0xFF)
-    Return BitOR(BitOR($r * 0x10000, $g * 0x100), $b)
-EndFunc
-
-; Restores the form background to the Windows default and forces an immediate full repaint.
-; Must be called with the window handle (WinGetHandle($Form_Main)) AFTER the GUI is created.
-Func _ResetBkColor($hWnd)
-    GUISetBkColor($COLOR_BK_DEFAULT, $hWnd)
-    ; RDW_ERASE=0x04 | RDW_INVALIDATE=0x01 | RDW_UPDATENOW=0x100 | RDW_ALLCHILDREN=0x80
-    DllCall("user32.dll", "bool", "RedrawWindow", "hwnd", WinGetHandle($hWnd), "ptr", 0, "ptr", 0, "uint", 0x0185)
-EndFunc
+Global Const $COLOR_BK_NORMAL  = 0x1E6A8A
+Global Const $COLOR_BK_WARNING = 0xFF4400
+Global Const $COLOR_BK_ALERT   = 0xCC0000
+Global Const $COLOR_ACCENT     = 0x003D7A
+;~ Global Const $COLOR_WHITE      = 0xFFFFFF
 
 ; Windows API constants for multi-monitor
 ;~ Global Const $SM_XVIRTUALSCREEN  = 76
@@ -142,7 +115,7 @@ GUISetState(@SW_HIDE, $g_ahNotify[0])
 ; Layout:  Left column = controls (10..268)  |  Right column = history (274..338)
 ; =============================================================================
 Global $Form_Main = GUICreate("Time Control", 348, 282, -1, -1)
-GUISetBkColor($COLOR_BK_DEFAULT, $Form_Main) ; Windows default gray (theme-aware)
+GUISetBkColor($COLOR_BK_NORMAL, $Form_Main)
 
 ; --- Status bar ---
 Global $StatusBar = _GUICtrlStatusBar_Create($Form_Main)
@@ -152,21 +125,20 @@ _GUICtrlStatusBar_SetText($StatusBar, FileGetVersion(@ScriptFullPath), 0)
 _GUICtrlStatusBar_SetText($StatusBar, "Dev. By Fabricio Zambroni", 1)
 
 ; ---------------------------------------------------------------------------
-; ACTION GROUP  –  Shutdown / Restart / Hibernate / Stop / Close
+; ACTION GROUP  –  Shutdown / Restart / Hibernate / Stop
 ; ---------------------------------------------------------------------------
 GUICtrlCreateGroup("", 6, 5, 335, 33)
-Global $Radio_Shutdown  = GUICtrlCreateRadio("Shutdown",  14,  16,  60, 16)
-Global $Radio_Restart   = GUICtrlCreateRadio("Restart",   77,  16,  55, 16)
-Global $Radio_Hibernate = GUICtrlCreateRadio("Hibernate", 135, 16,  68, 16)
-Global $Radio_StopTimer = GUICtrlCreateRadio("Stop",      206, 16,  48, 16)
-Global $Radio_Close     = GUICtrlCreateRadio("Close",     257, 16,  55, 16)
+Global $Radio_Shutdown  = GUICtrlCreateRadio("Shutdown",  17,  16,  68, 16)
+Global $Radio_Restart   = GUICtrlCreateRadio("Restart",   90,  16,  62, 16)
+Global $Radio_Hibernate = GUICtrlCreateRadio("Hibernate", 157, 16,  72, 16)
+Global $Radio_StopTimer = GUICtrlCreateRadio("Stop",      233, 16,  60, 16)
 GUICtrlCreateGroup("", -99, -99, 1, 1)
 _RestoreRadioState()
 
 ; --- Action descriptions (small label updated dynamically) ---
 Global $Label_ActionDesc = GUICtrlCreateLabel("Powered off", 8, 42, 258, 14, $SS_CENTER)
 GUICtrlSetFont(-1, 7, 400, 2, "Arial")
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, 0xCCEEFF)
 _UpdateActionDesc()
 
 ; ---------------------------------------------------------------------------
@@ -187,13 +159,13 @@ EndIf
 ; ---------------------------------------------------------------------------
 GUICtrlCreateLabel("H",  10, 93, 12, 16, $SS_CENTER)
 GUICtrlSetFont(-1, 8, 700, 0, "Arial")
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 Global $Combo_Hora = GUICtrlCreateCombo("", 22, 90, 50, 24, BitOR($CBS_DROPDOWN, $CBS_AUTOHSCROLL))
 GUICtrlSetData($Combo_Hora, _BuildNumList(0, 23, "%02d"), RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Hour"))
 
 GUICtrlCreateLabel("M",  78, 93, 12, 16, $SS_CENTER)
 GUICtrlSetFont(-1, 8, 700, 0, "Arial")
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 Global $Combo_Minuto = GUICtrlCreateCombo("", 90, 90, 50, 24)
 GUICtrlSetData($Combo_Minuto, _BuildNumList(0, 59, "%02d"), RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Minute"))
 
@@ -208,7 +180,7 @@ GUICtrlSetState($Button_Cancel, $GUI_HIDE)
 
 Global $Label_Mode = GUICtrlCreateLabel("Shutdown at", 216, 94, 52, 14, $SS_CENTER)
 GUICtrlSetFont(-1, 7, 400, 2, "Arial")
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, 0xCCEEFF)
 
 ; ---------------------------------------------------------------------------
 ; COUNTDOWN DISPLAY
@@ -216,7 +188,7 @@ GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
 GUICtrlCreateGroup("", 8, 112, 258, 40)
 Global $Label_Countdown = GUICtrlCreateLabel("00:00:00", 14, 121, 246, 28, $SS_CENTER)
 GUICtrlSetFont(-1, 22, 700, 0, "Courier New")
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 GUICtrlCreateGroup("", -99, -99, 1, 1)
 
 ; ---------------------------------------------------------------------------
@@ -228,7 +200,7 @@ Global $ProgressBar = GUICtrlCreateProgress(8, 155, 258, 9)
 ; OPTIONS ROW 1  –  Sound
 ; ---------------------------------------------------------------------------
 Global $Check_Sound = GUICtrlCreateCheckbox("Play Sound   Vol:", 8, 170, 112, 17)
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 _RestoreCheck($Check_Sound, "Sound")
 Local $sVol = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Volume_Set")
 If $sVol = "" Then $sVol = "30"
@@ -241,14 +213,14 @@ GUICtrlSetFont($Button_TestSound, 7, 400, 0, "Arial")
 ; OPTIONS ROW 2  –  Tray
 ; ---------------------------------------------------------------------------
 Global $Check_Tray = GUICtrlCreateCheckbox("Minimize to tray", 8, 192, 120, 17)
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 _RestoreCheck($Check_Tray, "TrayCheck")
 
 ; ---------------------------------------------------------------------------
 ; OPTIONS ROW 3  –  Mouse keep-alive
 ; ---------------------------------------------------------------------------
 Global $Check_MouseMove = GUICtrlCreateCheckbox("Mouse jigger Sens:", 8, 212, 153, 17)
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 _RestoreCheck($Check_MouseMove, "MouseMove")
 
 Local $sSens = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseSensitivity")
@@ -257,7 +229,7 @@ Global $Combo_MouseSens = GUICtrlCreateCombo("", 122, 207, 46, 22, $CBS_DROPDOWN
 GUICtrlSetData($Combo_MouseSens, "10|20|30|40|50|60|70|80|90|100|200|300|400|500", $sSens)
 
 GUICtrlCreateLabel("Spd:", 180, 209, 26, 14)
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 Local $sSpd = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseSpeed")
 If $sSpd = "" Then $sSpd = "20"
 Global $Combo_MouseSpeed = GUICtrlCreateCombo("", 210, 207, 28, 22, $CBS_DROPDOWNLIST)
@@ -267,7 +239,7 @@ GUICtrlSetData($Combo_MouseSpeed, "0|5|10|20|30|40|50|60|70|80|90|100", $sSpd)
 ; OPTIONS ROW 4  –  Whisper mode
 ; ---------------------------------------------------------------------------
 Global $Check_Whisper = GUICtrlCreateCheckbox("Whisper mode (subtle micro-jiggle only)", 8, 230, 250, 17)
-GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
+GUICtrlSetColor(-1, $COLOR_WHITE)
 _RestoreCheck($Check_Whisper, "Whisper")
 
 ; ---------------------------------------------------------------------------
@@ -277,8 +249,8 @@ Global $List_History = GUICtrlCreateList("", 274, 57, 66, 168)
 Local $sHist = _CleanPipes(RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "History"))
 GUICtrlSetData($List_History, $sHist)
 GUICtrlSetFont($List_History, 7, 700, 0, "Courier New")
-GUICtrlSetBkColor($List_History, 0xFFFFFF)   ; white listbox on gray form
-GUICtrlSetColor($List_History, 0x000000)      ; black text
+GUICtrlSetBkColor($List_History, $COLOR_ACCENT)
+GUICtrlSetColor($List_History, $COLOR_WHITE)
 
 Global $Button_ClearHistory = GUICtrlCreateButton("CLEAR", 274, 230, 66, 18)
 GUICtrlSetFont($Button_ClearHistory, 7, 400, 0, "Arial")
@@ -349,7 +321,7 @@ While 1
             $g_iMouseCount = 0
 
         ; -- Action radio buttons --
-        Case $Radio_Shutdown, $Radio_Restart, $Radio_Hibernate, $Radio_StopTimer, $Radio_Close
+        Case $Radio_Shutdown, $Radio_Restart, $Radio_Hibernate, $Radio_StopTimer
             _SaveRadioState()
             _UpdateActionDesc()
 
@@ -393,8 +365,8 @@ While 1
             RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Volume_Set", "REG_SZ", GUICtrlRead($Combo_Volume))
         Case $Button_TestSound
             SoundSetWaveVolume(GUICtrlRead($Combo_Volume))
-            SoundPlay(@TempDir & "\beep-07.wav",  0)
-            SoundPlay(@TempDir & "\beep-01a.wav", 0)
+            SoundPlay(@TempDir & "\beep-07.wav",  1)
+            SoundPlay(@TempDir & "\beep-01a.wav", 1)
 
         ; -- Tray option --
         Case $Check_Tray
@@ -555,7 +527,6 @@ Func _SaveRadioState()
     RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_Restart",   "REG_SZ", GUICtrlRead($Radio_Restart))
     RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_Hibernate", "REG_SZ", GUICtrlRead($Radio_Hibernate))
     RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_StopTimer", "REG_SZ", GUICtrlRead($Radio_StopTimer))
-    RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_Close",     "REG_SZ", GUICtrlRead($Radio_Close))
 EndFunc
 
 Func _RestoreRadioState()
@@ -563,11 +534,9 @@ Func _RestoreRadioState()
     GUICtrlSetState($Radio_Restart,   RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_Restart"))
     GUICtrlSetState($Radio_Hibernate, RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_Hibernate"))
     GUICtrlSetState($Radio_StopTimer, RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_StopTimer"))
-    GUICtrlSetState($Radio_Close,     RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Radio_Close"))
     ; Default to Shutdown if nothing is saved
     If GUICtrlRead($Radio_Shutdown) <> $GUI_CHECKED And GUICtrlRead($Radio_Restart) <> $GUI_CHECKED And _
-       GUICtrlRead($Radio_Hibernate) <> $GUI_CHECKED And GUICtrlRead($Radio_StopTimer) <> $GUI_CHECKED And _
-       GUICtrlRead($Radio_Close) <> $GUI_CHECKED Then
+       GUICtrlRead($Radio_Hibernate) <> $GUI_CHECKED And GUICtrlRead($Radio_StopTimer) <> $GUI_CHECKED Then
         GUICtrlSetState($Radio_Shutdown, $GUI_CHECKED)
         _SaveRadioState()
     EndIf
@@ -586,10 +555,6 @@ Func _UpdateActionDesc()
 		GUICtrlSetData($Label_ActionDesc, "Computer will hibernate (saves state)")
 		Return
 		EndIf
-    If GUICtrlRead($Radio_Close)     = $GUI_CHECKED Then
-		GUICtrlSetData($Label_ActionDesc, "This application will close (Exit)")
-		Return
-		EndIf
     GUICtrlSetData($Label_ActionDesc, "Timer stops – computer stays on")
 EndFunc
 
@@ -605,7 +570,6 @@ Func _GetActionTitle()
     If GUICtrlRead($Radio_Shutdown)  = $GUI_CHECKED Then Return "This device will shut down soon..."
     If GUICtrlRead($Radio_Restart)   = $GUI_CHECKED Then Return "This device will restart soon..."
     If GUICtrlRead($Radio_Hibernate) = $GUI_CHECKED Then Return "This device will hibernate soon..."
-    If GUICtrlRead($Radio_Close)     = $GUI_CHECKED Then Return "This application will close soon..."
     Return "The timer will stop soon..."
 EndFunc
 
@@ -616,19 +580,15 @@ Func _EnableControls($bEnable)
     Else
         $iState = $GUI_DISABLE
     EndIf
-    GUICtrlSetState($Combo_Hora,          $iState)
-    GUICtrlSetState($Combo_Minuto,        $iState)
-    GUICtrlSetState($List_History,        $iState)
+    GUICtrlSetState($Combo_Hora,      $iState)
+    GUICtrlSetState($Combo_Minuto,    $iState)
+    GUICtrlSetState($List_History,    $iState)
     GUICtrlSetState($Button_ClearHistory, $iState)
-    GUICtrlSetState($Radio_FixedTime,     $iState)
-    GUICtrlSetState($Radio_Duration,      $iState)
+    GUICtrlSetState($Radio_FixedTime, $iState)
+    GUICtrlSetState($Radio_Duration,  $iState)
     If $bEnable Then
         GUICtrlSetState($Button_Start,  $GUI_SHOW)
         GUICtrlSetState($Button_Cancel, $GUI_HIDE)
-        ; Restore default background and force an immediate full repaint.
-        ; Must come AFTER all control state changes so no subsequent redraw can override it.
-        _ResetBkColor($Form_Main)
-        GUICtrlSetColor($Label_Countdown, $COLOR_TEXT_NORMAL)
     Else
         GUICtrlSetState($Button_Start,  $GUI_HIDE)
         GUICtrlSetState($Button_Cancel, $GUI_SHOW)
@@ -737,11 +697,12 @@ Func _Stop()
     TrayItemSetState($iTray_Stop,   $GUI_DISABLE)
     GUICtrlSetState($Button_Cancel, $GUI_UNCHECKED)
     GUICtrlSetData($Label_Countdown, "00:00:00")
+    GUICtrlSetColor($Label_Countdown, $COLOR_WHITE)
     GUICtrlSetData($ProgressBar, 0)
+    GUISetBkColor($COLOR_BK_NORMAL, $Form_Main)
     TraySetToolTip()
     TraySetState(8)  ; stop flash
 
-    ; _EnableControls(True) shows START and calls _ResetBkColor → forced repaint
     _EnableControls(True)
     GUISetState(@SW_HIDE, $g_ahNotify[0])
     _FileWriteLog($g_sLogPath, "Timer stopped.")
@@ -836,24 +797,18 @@ Func _CountDown()
             If GUICtrlRead($Check_Sound) = $GUI_CHECKED Then
                 SoundSetWaveVolume(GUICtrlRead($Combo_Volume))
                 If $iSec <= 10 Then
-                    SoundPlay(@TempDir & "\beep-01a.wav", 0)
+                    SoundPlay(@TempDir & "\beep-01a.wav", 1)
                 ElseIf $iSec <= 30 Then
-					#cs
                     If $g_iBeepCount > 1 Then
                         $g_iBeepCount = 0
-                        SoundPlay(@ScriptDir & "\beep-07.wav", 0)
+                        SoundPlay(@ScriptDir & "\beep-07.wav", 1)
                     Else
                         $g_iBeepCount += 1
-                    EndIf
-					#ce
-					If @SEC <> $g_iBeepTimeSec Then
-                        $g_iBeepTimeSec = @SEC
-                        SoundPlay(@ScriptDir & "\beep-07.wav", 0)
                     EndIf
                 Else
                     If @SEC <> $g_iBeepTimeSec Then
                         $g_iBeepTimeSec = @SEC
-                        SoundPlay(@ScriptDir & "\beep-07.wav", 0)
+                        SoundPlay(@ScriptDir & "\beep-07.wav", 1)
                     EndIf
                 EndIf
             EndIf
@@ -874,39 +829,34 @@ Func _CountDown()
         EndIf
         GUISetState(@SW_SHOWNOACTIVATE, $g_ahNotify[0])
 
-        ; -------------------------------------------------------------------
-        ;  VISUAL WARNING COLOURS
-        ;  ≤ 30 s : bg flashes between default-gray and orange; text contrasts
-        ;  31-60 s: bg stays default; countdown text pulses dark-red / black
-        ; -------------------------------------------------------------------
+        ; Flashing colours in last 30 s
         If $iSec <= 30 Then
             $g_iLockMouseMove = 0  ; Stop jiggling – too close to action
             If $g_iRed = 1 Then
                 $g_iFloatWinShow = 0
-                _ResetBkColor($Form_Main)                           ; default gray + forced repaint
-                GUICtrlSetColor($Label_Countdown, $COLOR_TEXT_RED)  ; dark-red text
+                GUISetBkColor($COLOR_BK_NORMAL, $Form_Main)
+                GUICtrlSetColor($Label_Countdown, 0xFF4444)
                 TraySetState(4)  ; flash tray icon
                 $g_iRed = 0
             Else
-                GUISetBkColor($COLOR_BK_WARNING, $Form_Main)        ; orange bg
-                GUICtrlSetColor($Label_Countdown, $COLOR_WHITE)     ; white text on orange
+                GUISetBkColor($COLOR_BK_WARNING, $Form_Main)
+                GUICtrlSetColor($Label_Countdown, $COLOR_WHITE)
                 $g_iRed = 1
             EndIf
         Else
-            ; 31-60 s: only the countdown text pulses; background stays default
             If @SEC <> $g_iSecBuff Then
                 $g_iSecBuff = @SEC
                 TraySetState(4)
-                GUICtrlSetColor($Label_Countdown, $COLOR_TEXT_RED)  ; dark-red pulse
+                GUICtrlSetColor($Label_Countdown, 0xFF6666)
             Else
-                GUICtrlSetColor($Label_Countdown, $COLOR_TEXT_NORMAL) ; back to black
+                GUICtrlSetColor($Label_Countdown, $COLOR_WHITE)
             EndIf
         EndIf
 
-    Else  ; More than 60 s remaining – calm display, Windows default bg, black text
+    Else  ; More than 60 s remaining – calm display
         $g_iFloatWinShow = 0
-        GUICtrlSetColor($Label_Countdown, $COLOR_TEXT_NORMAL)  ; black
-        _ResetBkColor($Form_Main)                               ; default gray + forced repaint
+        GUICtrlSetColor($Label_Countdown, $COLOR_WHITE)
+        GUISetBkColor($COLOR_BK_NORMAL, $Form_Main)
         TraySetState(9)
         GUISetState(@SW_HIDE, $g_ahNotify[0])
     EndIf
@@ -918,14 +868,6 @@ EndFunc
 ; =============================================================================
 
 Func _ExecuteAction()
-    ; Restore normal appearance immediately.
-    ; For OS actions (Shutdown/Restart/Hibernate/Close) this clears the orange/red
-    ; during the brief gap before the OS acts.
-    ; For Stop, _Stop() → _EnableControls(True) → _ResetBkColor handles the repaint.
-    _ResetBkColor($Form_Main)
-    GUICtrlSetColor($Label_Countdown, $COLOR_TEXT_NORMAL)
-    GUISetState(@SW_HIDE, $g_ahNotify[0])
-
     _FileWriteLog($g_sLogPath, "Action executing: " & _GetActionTitle())
     If GUICtrlRead($Radio_Shutdown)  = $GUI_CHECKED Then
         Shutdown(5)  ; Shutdown + force close apps
@@ -936,10 +878,8 @@ Func _ExecuteAction()
     ElseIf GUICtrlRead($Radio_Hibernate) = $GUI_CHECKED Then
         Shutdown(64) ; Hibernate
         Exit
-    ElseIf GUICtrlRead($Radio_Close) = $GUI_CHECKED Then
-        _AppExit()   ; Close this application
     Else
-        ; "Stop" mode: _Stop() → _EnableControls(True) → _ResetBkColor
+        ; "Stop" mode: just stop the timer
         TraySetState(9)
         _Stop()
     EndIf
