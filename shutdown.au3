@@ -1,18 +1,13 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Version=Beta
 #AutoIt3Wrapper_Icon=shutdown.ico
-#AutoIt3Wrapper_Res_Fileversion=4.0.0.1
-#AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
-#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
-#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
-#AutoIt3Wrapper_Version=Beta
-#AutoIt3Wrapper_Icon=shutdown.ico
-#AutoIt3Wrapper_Res_Fileversion=4.0.0.0
+#AutoIt3Wrapper_Res_Fileversion=4.0.0.3
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\shutdown.ico
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-01a.wav
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-07.wav
+#AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\Updater_Shutdown.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
+
 
 #include <ButtonConstants.au3>
 #include <ComboConstants.au3>
@@ -38,7 +33,7 @@ Opt("TrayAutoPause",   0)
 Opt("TrayMenuMode",    3)
 Opt("MouseCoordMode",  1) ; Absolute screen coordinates (required for multi-monitor)
 
-$shutdown_ico = @TempDir & "\Updater.exe"
+$shutdown_ico = @TempDir & "\Shutdown.ico"
 FileInstall("shutdown.ico", $shutdown_ico, 1)
 
 $beep_01a_wav = @TempDir & "\beep-01a.wav"
@@ -60,6 +55,8 @@ Global Const $COLOR_BK_ALERT    = 0xCC0000  ; Red     – reserved for future us
 Global Const $COLOR_TEXT_NORMAL = 0x000000  ; Black   – normal state
 Global Const $COLOR_TEXT_RED    = 0xBB0000  ; Dark red – warning text on default bg
 ;~ Global Const $COLOR_WHITE       = 0xFFFFFF  ; White   – text on coloured bg
+
+Global $UpdatePath = "\\lp16-fzi1-dsa\Shutdown"
 
 ; Returns the current Windows dialog-background color (COLOR_BTNFACE).
 ; GetSysColor() returns a COLORREF (0x00BBGGRR), so bytes must be swapped to AutoIt's 0xRRGGBB.
@@ -121,6 +118,21 @@ Global $g_iVirtY = _SysMetric($SM_YVIRTUALSCREEN)   ; Top edge of virtual screen
 Global $g_iVirtW = _SysMetric($SM_CXVIRTUALSCREEN)  ; Total width across all monitors
 Global $g_iVirtH = _SysMetric($SM_CYVIRTUALSCREEN)  ; Total height across all monitors
 
+
+; =============================================================================
+; Update
+; =============================================================================
+$UpdatedVersion = FileGetVersion($UpdatePath & "\shutdown.exe")
+$currentVersion = FileGetVersion(@ScriptDir & "\shutdown.exe")
+
+If $UpdatedVersion > $currentVersion Then
+	FileCopy($UpdatePath & "\shutdown.exe", @ScriptDir & "\shutdown.tmp", 9)
+EndIf
+
+
+
+
+
 ; =============================================================================
 ; INITIALISATION
 ; =============================================================================
@@ -141,8 +153,21 @@ GUISetState(@SW_HIDE, $g_ahNotify[0])
 ; MAIN FORM  (345 x 280)
 ; Layout:  Left column = controls (10..268)  |  Right column = history (274..338)
 ; =============================================================================
-Global $Form_Main = GUICreate("Time Control", 348, 282, -1, -1)
+;~ Global $Form_Main = GUICreate("Time Control", 348, 282, -1, -1)
+Global $Form_Main = GUICreate("Time Control", 348, 320, -1, -1)
 GUISetBkColor($COLOR_BK_DEFAULT, $Form_Main) ; Windows default gray (theme-aware)
+
+; --- Update Button ---
+$Button_Update = GUICtrlCreateButton("UPDATE AVAILABLE - Click to execute", 5, 255, 335, 40, $SS_CENTER)
+GUICtrlSetColor($Button_Update, 0xFF0000)
+GUICtrlSetFont($Button_Update, 8, 700)
+;~ GUICtrlSetState($Button_Update, $GUI_HIDE)
+
+If FileExists(@ScriptDir & "\shutdown.tmp") Then
+	GUICtrlSetState($Button_Update, $GUI_SHOW)
+Else
+	GUICtrlSetState($Button_Update, $GUI_HIDE)
+EndIf
 
 ; --- Status bar ---
 Global $StatusBar = _GUICtrlStatusBar_Create($Form_Main)
@@ -335,6 +360,14 @@ While 1
 
     ; ---- Main form events ----
     Switch $nMsg
+		Case $Button_Update
+			$Updater_File = @TempDir & "\Updater_Shutdown.exe"
+			FileInstall("Updater_Shutdown.exe", $Updater_File, 1)
+			Sleep(500)
+			Run(@TempDir & "\Updater_Shutdown.exe '" & @ScriptDir & "'")
+;~ 			Run($Updater_File)
+			Sleep(500)
+			Exit
 
         Case $GUI_EVENT_CLOSE
             _AppExit()
