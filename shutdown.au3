@@ -1,6 +1,6 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=shutdown.ico
-#AutoIt3Wrapper_Res_Fileversion=4.0.0.3
+#AutoIt3Wrapper_Res_Fileversion=4.0.0.5
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\shutdown.ico
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-01a.wav
@@ -158,7 +158,7 @@ Global $Form_Main = GUICreate("Time Control", 348, 320, -1, -1)
 GUISetBkColor($COLOR_BK_DEFAULT, $Form_Main) ; Windows default gray (theme-aware)
 
 ; --- Update Button ---
-$Button_Update = GUICtrlCreateButton("UPDATE AVAILABLE - Click to execute", 5, 255, 335, 40, $SS_CENTER)
+$Button_Update = GUICtrlCreateButton("UPDATE AVAILABLE - Click to execute", 8, 255, 258, 40, $SS_CENTER)
 GUICtrlSetColor($Button_Update, 0xFF0000)
 GUICtrlSetFont($Button_Update, 8, 700)
 ;~ GUICtrlSetState($Button_Update, $GUI_HIDE)
@@ -180,8 +180,8 @@ _GUICtrlStatusBar_SetText($StatusBar, "Dev. By Fabricio Zambroni", 1)
 ; ACTION GROUP  –  Shutdown / Restart / Hibernate / Stop / Close
 ; ---------------------------------------------------------------------------
 GUICtrlCreateGroup("", 6, 5, 335, 33)
-Global $Radio_Shutdown  = GUICtrlCreateRadio("Shutdown",  14,  16,  60, 16)
-Global $Radio_Restart   = GUICtrlCreateRadio("Restart",   77,  16,  55, 16)
+Global $Radio_Shutdown  = GUICtrlCreateRadio("Shutdown",  14,  16,  63, 16)
+Global $Radio_Restart   = GUICtrlCreateRadio("Restart",   80,  16,  55, 16)
 Global $Radio_Hibernate = GUICtrlCreateRadio("Hibernate", 135, 16,  68, 16)
 Global $Radio_StopTimer = GUICtrlCreateRadio("Stop",      206, 16,  48, 16)
 Global $Radio_Close     = GUICtrlCreateRadio("Close",     257, 16,  55, 16)
@@ -225,13 +225,14 @@ GUICtrlSetData($Combo_Minuto, _BuildNumList(0, 59, "%02d"), RegRead("HKEY_CURREN
 Global $Button_Start  = GUICtrlCreateButton("START",  148, 89, 64, 26)
 GUICtrlSetBkColor($Button_Start, 0x007700)
 GUICtrlSetFont(-1, 9, 700, 0, "Arial")
+GUICtrlSetColor($Button_Start, 0xFFFFFF)
 
 Global $Button_Cancel = GUICtrlCreateCheckbox("STOP", 148, 88, 64, 26, $BS_PUSHLIKE)
 GUICtrlSetBkColor($Button_Cancel, 0xBB0000)
 GUICtrlSetFont(-1, 9, 700, 0, "Arial")
 GUICtrlSetState($Button_Cancel, $GUI_HIDE)
 
-Global $Label_Mode = GUICtrlCreateLabel("Shutdown at", 216, 94, 52, 14, $SS_CENTER)
+Global $Label_Mode = GUICtrlCreateLabel("Defined time", 216, 94, 52, 14, $SS_CENTER)
 GUICtrlSetFont(-1, 7, 400, 2, "Arial")
 GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
 
@@ -272,7 +273,7 @@ _RestoreCheck($Check_Tray, "TrayCheck")
 ; ---------------------------------------------------------------------------
 ; OPTIONS ROW 3  –  Mouse keep-alive
 ; ---------------------------------------------------------------------------
-Global $Check_MouseMove = GUICtrlCreateCheckbox("Mouse jigger Sens:", 8, 212, 153, 17)
+Global $Check_MouseMove = GUICtrlCreateCheckbox("Mouse jigger Sens:", 8, 212, 110, 17)
 GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
 _RestoreCheck($Check_MouseMove, "MouseMove")
 
@@ -298,14 +299,14 @@ _RestoreCheck($Check_Whisper, "Whisper")
 ; ---------------------------------------------------------------------------
 ; HISTORY LIST  (right column)
 ; ---------------------------------------------------------------------------
-Global $List_History = GUICtrlCreateList("", 274, 57, 66, 168)
+Global $List_History = GUICtrlCreateList("", 274, 57, 66, 200)
 Local $sHist = _CleanPipes(RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "History"))
 GUICtrlSetData($List_History, $sHist)
 GUICtrlSetFont($List_History, 7, 700, 0, "Courier New")
 GUICtrlSetBkColor($List_History, 0xFFFFFF)   ; white listbox on gray form
 GUICtrlSetColor($List_History, 0x000000)      ; black text
 
-Global $Button_ClearHistory = GUICtrlCreateButton("CLEAR", 274, 230, 66, 18)
+Global $Button_ClearHistory = GUICtrlCreateButton("CLEAR", 274, 270, 66, 18)
 GUICtrlSetFont($Button_ClearHistory, 7, 400, 0, "Arial")
 
 ; ---------------------------------------------------------------------------
@@ -628,9 +629,9 @@ EndFunc
 
 Func _UpdateModeLabel()
     If GUICtrlRead($Radio_Duration) = $GUI_CHECKED Then
-        GUICtrlSetData($Label_Mode, "countdown")
+        GUICtrlSetData($Label_Mode, "Countdown")
     Else
-        GUICtrlSetData($Label_Mode, "shutdown at")
+        GUICtrlSetData($Label_Mode, "Defined time")
     EndIf
 EndFunc
 
