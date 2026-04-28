@@ -1,12 +1,13 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=shutdown.ico
-#AutoIt3Wrapper_Res_Fileversion=4.0.0.8
+#AutoIt3Wrapper_Res_Fileversion=4.0.0.7
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\shutdown.ico
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-01a.wav
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-07.wav
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\Updater_Shutdown.exe
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
+
 
 #include <ButtonConstants.au3>
 #include <ComboConstants.au3>
@@ -172,7 +173,7 @@ EndIf
 Global $StatusBar = _GUICtrlStatusBar_Create($Form_Main)
 Dim $aBarParts[2] = [88, -1]
 _GUICtrlStatusBar_SetParts($StatusBar, $aBarParts)
-_GUICtrlStatusBar_SetText($StatusBar, "Version: " & $currentVersion, 0)
+_GUICtrlStatusBar_SetText($StatusBar, FileGetVersion(@ScriptFullPath), 0)
 _GUICtrlStatusBar_SetText($StatusBar, "Dev. By Fabricio Zambroni", 1)
 
 ; ---------------------------------------------------------------------------
@@ -298,7 +299,7 @@ _RestoreCheck($Check_Whisper, "Whisper")
 Global $Combo_MouseWhisper = GUICtrlCreateCombo("", 122, 231, 45, 22, $CBS_DROPDOWNLIST)
 Global $sMWh = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseWhisper")
 If $sMWh = "" Then $sMWh = "10"
-GUICtrlSetData($Combo_MouseWhisper, "1|2|3|4|5|6|7|8|9|10|15|20|25|30|35|40|45|50", $sMWh)
+GUICtrlSetData($Combo_MouseWhisper, "1|5|10|15|20|25|30|35|40|45|50", $sMWh)
 
 GUICtrlCreateLabel("Spd:", 180, 233, 26, 14)
 GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
@@ -306,7 +307,7 @@ GUICtrlSetColor(-1, $COLOR_TEXT_NORMAL)
 Global $sJSpd = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseWhisperSpeed")
 If $sJSpd = "" Then $sJSpd = "20"
 Global $Combo_MouseWhisperJiggler = GUICtrlCreateCombo("", 210, 231, 45, 22, $CBS_DROPDOWNLIST)
-GUICtrlSetData($Combo_MouseWhisperJiggler, "1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|25|30|35|40|45|50", $sJSpd)
+GUICtrlSetData($Combo_MouseWhisperJiggler, "0|5|10|20|30|40|50|60|70|80|90|100", $sJSpd)
 
 ; ---------------------------------------------------------------------------
 ; HISTORY LIST  (right column)
@@ -523,47 +524,21 @@ Func _CursorPos()
 	Return $a
 EndFunc   ;==>_CursorPos
 
-; Cursor nudge - monitor & DPI independent AND resets the Windows idle timer.
-;
-; IMPORTANT: SetCursorPos moves the cursor visually but does NOT generate an
-; input event, so GetLastInputInfo is not updated and the screensaver still
-; kicks in. We must use mouse_event to register real activity.
-;
-; Strategy: mouse_event with MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE |
-; MOUSEEVENTF_VIRTUALDESK.
-;   - ABSOLUTE  -> bypasses the pointer-acceleration curve that swallows
-;                  tiny relative deltas (1-2 px often round to 0).
-;   - VIRTUALDESK -> coordinates are normalized 0..65535 across the FULL
-;                    virtual desktop (all monitors), so the jiggle lands
-;                    correctly on the active monitor regardless of size,
-;                    position (incl. negative coords), or per-monitor DPI.
-;   - MOVE in absolute mode generates a real input event, resetting
-;     GetLastInputInfo and preventing screensaver / sleep.
+; Relative cursor nudge - monitor & DPI independent.
+; Reads the current position with GetCursorPos and writes the new position
+; with SetCursorPos. Unlike AutoIt's MouseMove() in absolute mode, SetCursorPos
+; takes raw screen coordinates WITHOUT the 0-65535 virtual-desktop normalization
+; that breaks tiny moves on secondary monitors. Unlike mouse_event/SendInput
+; relative moves, it also bypasses the Windows pointer-acceleration curve,
+; which often swallows 1-pixel deltas entirely. Result: a 1 px jiggle stays
+; a 1 px jiggle on ANY monitor, any DPI, any "Enhanced Pointer Precision"
+; setting - and it actually moves.
 Func _MouseNudge($iDx, $iDy)
-	; Read current real-pixel cursor position
 	Local $tPT = DllStructCreate("int X; int Y")
 	DllCall("user32.dll", "bool", "GetCursorPos", "struct*", $tPT)
 	Local $iX = DllStructGetData($tPT, "X") + $iDx
 	Local $iY = DllStructGetData($tPT, "Y") + $iDy
-
-	; Convert real virtual-desktop pixels -> 0..65535 normalized range.
-	; Uses the global virtual-screen metrics captured at startup.
-	Local $iDenomX = $g_iVirtW - 1
-	Local $iDenomY = $g_iVirtH - 1
-	If $iDenomX < 1 Then $iDenomX = 1
-	If $iDenomY < 1 Then $iDenomY = 1
-	Local $iNormX = Int(($iX - $g_iVirtX) * 65535 / $iDenomX)
-	Local $iNormY = Int(($iY - $g_iVirtY) * 65535 / $iDenomY)
-
-	; MOUSEEVENTF_MOVE = 0x0001
-	; MOUSEEVENTF_ABSOLUTE = 0x8000
-	; MOUSEEVENTF_VIRTUALDESK = 0x4000
-	DllCall("user32.dll", "none", "mouse_event", _
-			"dword", BitOR(0x0001, 0x8000, 0x4000), _
-			"dword", $iNormX, _
-			"dword", $iNormY, _
-			"dword", 0, _
-			"ulong_ptr", 0)
+	DllCall("user32.dll", "bool", "SetCursorPos", "int", $iX, "int", $iY)
 EndFunc   ;==>_MouseNudge
 
 ; Return the WORK area [left, top, right, bottom] of the monitor that
@@ -919,20 +894,20 @@ Func _CountDown()
 
 				$sSens = GUICtrlRead($Combo_MouseSens)
 
-				$sSpd = GUICtrlRead($Combo_MouseSpeed)
+			$sSpd = GUICtrlRead($Combo_MouseSpeed)
 
-				$sJSpd = GUICtrlRead($Combo_MouseWhisperJiggler)
+			$sJSpd = GUICtrlRead($Combo_MouseWhisperJiggler)
 
-				$sMWh = GUICtrlRead($Combo_MouseWhisper)
+			$sMWh = GUICtrlRead($Combo_MouseWhisper)
 
 				; Whisper: imperceptible 2 px jiggle via SetCursorPos.
 				; SetCursorPos bypasses both the 0-65535 normalization that
 				; breaks absolute MouseMove on secondary monitors AND the
 				; Windows pointer-acceleration curve that swallows tiny
 				; relative moves. $iSpd is ignored - a nudge is instant.
-				_MouseNudge($sMWh, 0)
-				Sleep($sJSpd * 10)
-				_MouseNudge($sMWh * -1, 0)
+				_MouseNudge($sJSpd, 0)
+				Sleep($sMWh)
+				_MouseNudge($sJSpd * -1, 0)
 				$g_iMouseCount = 0
 			EndIf
 
