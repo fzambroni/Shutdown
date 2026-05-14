@@ -1,12 +1,17 @@
-#Region ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_UseX64=y
+#AutoIt3Wrapper_UseUpx=n
+#AutoIt3Wrapper_Res_CompanyName=Fabricio Zambroni
+#AutoIt3Wrapper_Res_Fileversion=4.1.1.0
+#AutoIt3Wrapper_Res_ProductVersion=4.1.1.1
+#AutoIt3Wrapper_Res_LegalCopyright=Copyright © 2026 Fabricio Zambroni
 #AutoIt3Wrapper_Icon=shutdown.ico
-#AutoIt3Wrapper_Res_Fileversion=4.0.0.8
-#AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
+#AutoIt3Wrapper_Res_Description=Shutdown
+#AutoIt3Wrapper_Res_ProductName=Shutdown
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\shutdown.ico
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-01a.wav
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\beep-07.wav
-#AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\Updater_Shutdown.exe
-#EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
+#AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\Updater.exe
+#AutoIt3Wrapper_Run_After=E:\GitHub\Shutdown\FileUpdate.exe
 
 #include <ButtonConstants.au3>
 #include <ComboConstants.au3>
@@ -26,11 +31,34 @@
 #include <Constants.au3>
 #include <Misc.au3>
 #include <ProgressConstants.au3>
+#include <String.au3>
+#include <InetConstants.au3>
+#include "Updater_lib.au3"
 
 Opt("TrayIconHide", 1)
 Opt("TrayAutoPause", 0)
 Opt("TrayMenuMode", 3)
 Opt("MouseCoordMode", 1)  ; Absolute screen coordinates (required for multi-monitor)
+
+
+; ----------------------------------------------------------------------------------------------------------------------
+; Updater - GitHub based
+; ----------------------------------------------------------------------------------------------------------------------
+; This updater no longer uses a shared network folder. It reads the latest version from GitHub version.txt,
+; downloads the published Toolbox.exe only when a newer version is available, then lets Updater.exe replace the file.
+Global Const $g_sGitHubDefaultRawBase = "https://raw.githubusercontent.com/fzambroni/Shutdown/main"
+Global $g_sGitHubRawBase = IniRead(@ScriptDir & "\settings.ini", "Update", "github_raw_base", $g_sGitHubDefaultRawBase)
+If StringStripWS($g_sGitHubRawBase, 3) = "" Then $g_sGitHubRawBase = $g_sGitHubDefaultRawBase
+
+; Keep settings.ini explicit and self-documenting. The old [Update] path entry is intentionally ignored.
+IniWrite(@ScriptDir & "\settings.ini", "Update", "source", "github")
+IniWrite(@ScriptDir & "\settings.ini", "Update", "github_raw_base", $g_sGitHubRawBase)
+
+; Skip automatic update checks when running the .au3 directly from SciTE/dev mode.
+If Not StringInStr(StringLower(@ScriptName), ".au3") Then
+    _CheckGitHubUpdate()
+EndIf
+
 
 $shutdown_ico = @TempDir & "\Shutdown.ico"
 FileInstall("shutdown.ico", $shutdown_ico, 1)
@@ -55,7 +83,13 @@ Global Const $COLOR_TEXT_NORMAL = 0x000000  ; Black   – normal state
 Global Const $COLOR_TEXT_RED = 0xBB0000     ; Dark red – warning text on default bg
 ;~ Global Const $COLOR_WHITE       = 0xFFFFFF  ; White   – text on coloured bg
 
-Global $UpdatePath = "\\lp16-fzi1-dsa\Shutdown"
+
+Global $UpdatePath = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Update_Path") ;Update Path
+If $UpdatePath = "" Then
+	RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Update_Path", "REG_SZ", "\\lp16-fzi1-dsa\Shutdown")
+	$UpdatePath = "\\lp16-fzi1-dsa\Shutdown"
+EndIf
+
 
 ; Returns the current Windows dialog-background color (COLOR_BTNFACE).
 ; GetSysColor() returns a COLORREF (0x00BBGGRR), so bytes must be swapped to AutoIt's 0xRRGGBB.
@@ -374,10 +408,10 @@ While 1
 	; ---- Main form events ----
 	Switch $nMsg
 		Case $Button_Update
-			$Updater_File = @TempDir & "\Updater_Shutdown.exe"
-			FileInstall("Updater_Shutdown.exe", $Updater_File, 1)
+			$Updater_File = @ScriptDir & "\Updater.exe"
+			FileInstall("Updater.exe", $Updater_File, 1)
 			Sleep(500)
-			Run(@TempDir & "\Updater_Shutdown.exe '" & @ScriptDir & "'")
+			Run($Updater_File)
 ;~ 			Run($Updater_File)
 			Sleep(500)
 			Exit
