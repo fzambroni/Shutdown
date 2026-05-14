@@ -54,10 +54,34 @@ Func _LogVerbose($sMessage)
     _LogWrite("VERBOSE | " & $sMessage, True)
 EndFunc
 
+
+Func _GetUpdateAppName()
+    ; Keep the update staging name stable and independent from @ScriptName casing.
+    ; shutdown.exe on GitHub is lowercase, and GitHub raw URLs are case-sensitive.
+    If IsDeclared("g_sUpdateAppName") Then
+        Local $sConfiguredAppName = StringStripWS(Eval("g_sUpdateAppName"), 3)
+        If $sConfiguredAppName <> "" Then Return $sConfiguredAppName
+    EndIf
+
+    Local $sScriptBase = _FileNameWithoutExtension(@ScriptName)
+    If StringStripWS($sScriptBase, 3) = "" Then Return "shutdown"
+    Return StringLower($sScriptBase)
+EndFunc
+
+Func _GetPublishedExeName()
+    ; Official published executable name in GitHub. Do not derive this from @ScriptName.
+    If IsDeclared("g_sPublishedExeName") Then
+        Local $sConfiguredExeName = StringStripWS(Eval("g_sPublishedExeName"), 3)
+        If $sConfiguredExeName <> "" Then Return $sConfiguredExeName
+    EndIf
+
+    Return _GetUpdateAppName() & ".exe"
+EndFunc
+
 Func _CheckGitHubUpdate($bManual = False)
     _LogInfo("GitHub update check started. Manual=" & $bManual)
     _LogVerbose("Runtime context: ScriptFullPath=" & @ScriptFullPath & " | ScriptName=" & @ScriptName & " | ScriptDir=" & @ScriptDir & " | Compiled=" & @Compiled & " | AutoItX64=" & @AutoItX64 & " | OS=" & @OSVersion)
-    _LogVerbose("Update settings: raw_base=" & $g_sGitHubRawBase & " | settings.ini=" & @ScriptDir & "\settings.ini")
+    _LogVerbose("Update settings: raw_base=" & $g_sGitHubRawBase & " | published_exe=" & _GetPublishedExeName() & " | update_app_name=" & _GetUpdateAppName() & " | settings.ini=" & @ScriptDir & "\settings.ini")
 
     Local $sCurrentVersion = FileGetVersion(@ScriptFullPath)
     _LogVerbose("Local FileGetVersion(" & @ScriptFullPath & ") returned: '" & $sCurrentVersion & "' | @error=" & @error & " | @extended=" & @extended)
@@ -67,15 +91,16 @@ Func _CheckGitHubUpdate($bManual = False)
         Return False
     EndIf
 
-    Local $sAppName = _FileNameWithoutExtension(@ScriptName)
+    Local $sAppName = _GetUpdateAppName()
+    Local $sPublishedExeName = _GetPublishedExeName()
     Local $sRemoteVersionUrl = _JoinUrl($g_sGitHubRawBase, "version.txt")
-    Local $sRemoteExeUrl = _JoinUrl($g_sGitHubRawBase, @ScriptName)
+    Local $sRemoteExeUrl = _JoinUrl($g_sGitHubRawBase, $sPublishedExeName)
     Local $sRemoteVersionTmp = @ScriptDir & "\" & $sAppName & "_github_version.txt"
     Local $sRemoteExeTmp = @ScriptDir & "\" & $sAppName & "_github_latest.exe"
     Local $sLocalTmp = @ScriptDir & "\" & $sAppName & ".tmp"
     Local $sUpdaterFile = @ScriptDir & "\Updater.exe"
 
-    _LogVerbose("Resolved update paths: version_url=" & $sRemoteVersionUrl & " | exe_url=" & $sRemoteExeUrl & " | version_tmp=" & $sRemoteVersionTmp & " | exe_tmp=" & $sRemoteExeTmp & " | local_tmp=" & $sLocalTmp & " | updater=" & $sUpdaterFile)
+    _LogVerbose("Resolved update paths: app_name=" & $sAppName & " | published_exe=" & $sPublishedExeName & " | version_url=" & $sRemoteVersionUrl & " | exe_url=" & $sRemoteExeUrl & " | version_tmp=" & $sRemoteVersionTmp & " | exe_tmp=" & $sRemoteExeTmp & " | local_tmp=" & $sLocalTmp & " | updater=" & $sUpdaterFile)
 
     If FileExists($sUpdaterFile) Then
         Local $bDeletedUpdater = FileDelete($sUpdaterFile)

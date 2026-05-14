@@ -20,9 +20,16 @@
 #ce ----------------------------------------------------------------------------
 
 $sFilePath = @ScriptDir & "\version.txt"
-$sExecPath = @ScriptDir & "\Shutdown.exe"
+$sExecPath = @ScriptDir & "\shutdown.exe"
+
+; GitHub raw URLs are case-sensitive. The published executable name is shutdown.exe.
+; Keep a fallback for older local builds that may still be named Shutdown.exe.
+If Not FileExists($sExecPath) Then $sExecPath = @ScriptDir & "\Shutdown.exe"
+
+Local $sVersion = FileGetVersion($sExecPath)
+If StringStripWS($sVersion, 3) = "" Then Exit 1
+
 Local $hFileOpen = FileOpen($sFilePath, 10)
-If $hFileOpen <> -1 Then
-	; Write data to the file using the handle returned by FileOpen.
-	FileWrite($hFileOpen, FileGetVersion($sExecPath))
-EndIf
+If $hFileOpen = -1 Then Exit 2
+FileWrite($hFileOpen, $sVersion)
+FileClose($hFileOpen)

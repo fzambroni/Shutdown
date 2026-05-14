@@ -1,8 +1,8 @@
 #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_CompanyName=Fabricio Zambroni
-#AutoIt3Wrapper_Res_Fileversion=4.1.1.5
-#AutoIt3Wrapper_Res_ProductVersion=4.1.1.1
+#AutoIt3Wrapper_Res_Fileversion=4.1.1.6
+#AutoIt3Wrapper_Res_ProductVersion=4.1.1.6
 #AutoIt3Wrapper_Res_LegalCopyright=Copyright © 2026 Fabricio Zambroni
 #AutoIt3Wrapper_Icon=shutdown.ico
 #AutoIt3Wrapper_Res_Description=Shutdown
@@ -47,6 +47,8 @@ Opt("MouseCoordMode", 1)  ; Absolute screen coordinates (required for multi-moni
 ; This updater no longer uses a shared network folder. It reads the latest version from GitHub version.txt,
 ; downloads the published application executable only when a newer version is available, then lets Updater.exe replace the file.
 Global Const $g_sGitHubDefaultRawBase = "https://raw.githubusercontent.com/fzambroni/Shutdown/main"
+Global Const $g_sUpdateAppName = "shutdown"
+Global Const $g_sPublishedExeName = "shutdown.exe"
 Global Const $g_sSettingsFile = @ScriptDir & "\settings.ini"
 Global Const $g_sLogDir = @ScriptDir & "\log"
 Global $g_iVerboseMode = Number(IniRead($g_sSettingsFile, "Logging", "VerboseMode", "0"))
@@ -59,6 +61,7 @@ DirCreate($g_sLogDir)
 ; Keep settings.ini explicit and self-documenting. The old [Update] path entry is intentionally ignored.
 IniWrite($g_sSettingsFile, "Update", "source", "github")
 IniWrite($g_sSettingsFile, "Update", "github_raw_base", $g_sGitHubRawBase)
+IniWrite($g_sSettingsFile, "Update", "published_exe", $g_sPublishedExeName)
 
 ; Skip automatic update checks when running the .au3 directly from SciTE/dev mode.
 If Not StringInStr(StringLower(@ScriptName), ".au3") Then

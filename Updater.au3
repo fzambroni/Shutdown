@@ -5,8 +5,8 @@
 #AutoIt3Wrapper_Res_Description=Updater
 #AutoIt3Wrapper_Res_CompanyName=Fabricio Zambroni
 #AutoIt3Wrapper_Res_LegalCopyright=Copyright © 2026 Fabricio Zambroni
-#AutoIt3Wrapper_Res_Fileversion=1.1.1.4
-#AutoIt3Wrapper_Res_ProductVersion=1.1.1.1
+#AutoIt3Wrapper_Res_Fileversion=1.1.1.5
+#AutoIt3Wrapper_Res_ProductVersion=1.1.1.5
 #AutoIt3Wrapper_Res_ProductName=Updater
 #AutoIt3Wrapper_Res_File_Add=E:\GitHub\Shutdown\splash.jpg
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
@@ -54,20 +54,14 @@ $sSplashPath = @ScriptDir & "\splash.jpg"
 FileInstall("splash.jpg", $sSplashPath, 1)
 Sleep(1000)
 
-#cs
 If $CmdLine[0] >= 1 Then
 	$Path = $CmdLine[1]
 Else
-	$Path = StringReplace(StringReplace($CmdLineRaw,"'", ""), '"', "")
+	$Path = @ScriptDir
 EndIf
-#ce
-$Path = @ScriptDir
+If StringStripWS($Path, 3) = "" Then $Path = @ScriptDir
 $g_sUpdaterLogBaseDir = $Path
-_UpdaterVerboseLog("Updater started. Application path: " & $Path)
-;~ $Path = "E:\Z_Apps\Toolbox"
-;~ MsgBox(262144,"",$Path & "\" & $AppName & ".tmp")
-;~ _splash()
-;~ Sleep(5000)
+_UpdaterVerboseLog("Updater started. Application path: " & $Path & " | CmdLineRaw=" & $CmdLineRaw)
 
 If Not FileExists($Path & "\" & $AppName & ".tmp") Then
 	_UpdaterVerboseLog("Update aborted: staged file not found: " & $Path & "\" & $AppName & ".tmp")
@@ -76,17 +70,31 @@ If Not FileExists($Path & "\" & $AppName & ".tmp") Then
 Else
 	_UpdaterVerboseLog("Staged file found. Starting replacement.")
 	_splash()
-	Sleep(3000)
-	If FileMove($Path & "\" & $AppName & ".tmp",$Path & "\" & $AppName & ".exe",9) Then
-		_UpdaterVerboseLog("Replacement completed: " & $Path & "\" & $AppName & ".exe")
-	Else
-		_UpdaterVerboseLog("Replacement failed. Source=" & $Path & "\" & $AppName & ".tmp" & " | Target=" & $Path & "\" & $AppName & ".exe")
+	Sleep(1500)
+	Local $sStagedFile = $Path & "\" & $AppName & ".tmp"
+	Local $sTargetFile = $Path & "\" & $AppName & ".exe"
+	Local $bReplaced = False
+
+	For $iAttempt = 1 To 20
+		_UpdaterVerboseLog("Replacement attempt " & $iAttempt & ". Source=" & $sStagedFile & " | Target=" & $sTargetFile)
+		If FileMove($sStagedFile, $sTargetFile, 9) Then
+			$bReplaced = True
+			_UpdaterVerboseLog("Replacement completed: " & $sTargetFile)
+			ExitLoop
+		EndIf
+		_UpdaterVerboseLog("Replacement attempt failed. @error=" & @error & " | waiting before retry")
+		Sleep(1000)
+	Next
+
+	If Not $bReplaced Then
+		_UpdaterVerboseLog("Replacement failed after all attempts. Source=" & $sStagedFile & " | Target=" & $sTargetFile)
 		FileDelete($sSplashPath)
 		Exit
 	EndIf
-	Sleep(2000)
-	_UpdaterVerboseLog("Restarting application: " & $Path & "\" & $AppName & ".exe")
-	Run('"' & $Path & "\" & $AppName & ".exe" & '"')
+
+	Sleep(1000)
+	_UpdaterVerboseLog("Restarting application: " & $sTargetFile)
+	Run('"' & $sTargetFile & '"')
 
 EndIf
 FileDelete($sSplashPath)
