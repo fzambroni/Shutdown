@@ -1,8 +1,8 @@
 #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_CompanyName=Fabricio Zambroni
-#AutoIt3Wrapper_Res_Fileversion=4.1.1.6
-#AutoIt3Wrapper_Res_ProductVersion=4.1.1.6
+#AutoIt3Wrapper_Res_Fileversion=4.1.1.7
+#AutoIt3Wrapper_Res_ProductVersion=4.1.1.7
 #AutoIt3Wrapper_Res_LegalCopyright=Copyright © 2026 Fabricio Zambroni
 #AutoIt3Wrapper_Icon=shutdown.ico
 #AutoIt3Wrapper_Res_Description=Shutdown
