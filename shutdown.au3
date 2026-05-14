@@ -1,7 +1,7 @@
 #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_CompanyName=Fabricio Zambroni
-#AutoIt3Wrapper_Res_Fileversion=4.1.1.3
+#AutoIt3Wrapper_Res_Fileversion=4.1.1.5
 #AutoIt3Wrapper_Res_ProductVersion=4.1.1.1
 #AutoIt3Wrapper_Res_LegalCopyright=Copyright © 2026 Fabricio Zambroni
 #AutoIt3Wrapper_Icon=shutdown.ico
@@ -90,11 +90,11 @@ Global Const $COLOR_TEXT_RED = 0xBB0000     ; Dark red – warning text on defau
 ;~ Global Const $COLOR_WHITE       = 0xFFFFFF  ; White   – text on coloured bg
 
 
-Global $UpdatePath = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Update_Path") ;Update Path
-If $UpdatePath = "" Then
-	RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Update_Path", "REG_SZ", "\\lp16-fzi1-dsa\Shutdown")
-	$UpdatePath = "\\lp16-fzi1-dsa\Shutdown"
-EndIf
+;~ Global $UpdatePath = RegRead("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Update_Path") ;Update Path
+;~ If $UpdatePath = "" Then
+;~ 	RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "Update_Path", "REG_SZ", "\\lp16-fzi1-dsa\Shutdown")
+;~ 	$UpdatePath = "\\lp16-fzi1-dsa\Shutdown"
+;~ EndIf
 
 
 ; Returns the current Windows dialog-background color (COLOR_BTNFACE).
@@ -160,12 +160,12 @@ Global $g_iVirtH = _SysMetric($SM_CYVIRTUALSCREEN)  ; Total height across all mo
 ; =============================================================================
 ; Update
 ; =============================================================================
-$UpdatedVersion = FileGetVersion($UpdatePath & "\shutdown.exe")
-$currentVersion = FileGetVersion(@ScriptDir & "\shutdown.exe")
+;~ $UpdatedVersion = FileGetVersion($UpdatePath & "\shutdown.exe")
+;~ $currentVersion = FileGetVersion(@ScriptDir & "\shutdown.exe")
 
-If $UpdatedVersion > $currentVersion Then
-	FileCopy($UpdatePath & "\shutdown.exe", @ScriptDir & "\shutdown.tmp", 9)
-EndIf
+;~ If $UpdatedVersion > $currentVersion Then
+;~ 	FileCopy($UpdatePath & "\shutdown.exe", @ScriptDir & "\shutdown.tmp", 9)
+;~ EndIf
 
 
 
@@ -211,7 +211,7 @@ EndIf
 Global $StatusBar = _GUICtrlStatusBar_Create($Form_Main)
 Dim $aBarParts[2] = [88, -1]
 _GUICtrlStatusBar_SetParts($StatusBar, $aBarParts)
-_GUICtrlStatusBar_SetText($StatusBar, "Version: " & $currentVersion, 0)
+_GUICtrlStatusBar_SetText($StatusBar, "Version: " & FileGetVersion(@ScriptFullPath), 0)
 _GUICtrlStatusBar_SetText($StatusBar, "Dev. By Fabricio Zambroni", 1)
 
 ; ---------------------------------------------------------------------------
