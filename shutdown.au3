@@ -1,7 +1,7 @@
 #AutoIt3Wrapper_UseX64=y
 #AutoIt3Wrapper_UseUpx=n
 #AutoIt3Wrapper_Res_CompanyName=Fabricio Zambroni
-#AutoIt3Wrapper_Res_Fileversion=4.1.1.1
+#AutoIt3Wrapper_Res_Fileversion=4.1.1.2
 #AutoIt3Wrapper_Res_ProductVersion=4.1.1.1
 #AutoIt3Wrapper_Res_LegalCopyright=Copyright © 2026 Fabricio Zambroni
 #AutoIt3Wrapper_Icon=shutdown.ico
@@ -45,18 +45,24 @@ Opt("MouseCoordMode", 1)  ; Absolute screen coordinates (required for multi-moni
 ; Updater - GitHub based
 ; ----------------------------------------------------------------------------------------------------------------------
 ; This updater no longer uses a shared network folder. It reads the latest version from GitHub version.txt,
-; downloads the published Toolbox.exe only when a newer version is available, then lets Updater.exe replace the file.
+; downloads the published application executable only when a newer version is available, then lets Updater.exe replace the file.
 Global Const $g_sGitHubDefaultRawBase = "https://raw.githubusercontent.com/fzambroni/Shutdown/main"
-Global $g_sGitHubRawBase = IniRead(@ScriptDir & "\settings.ini", "Update", "github_raw_base", $g_sGitHubDefaultRawBase)
+Global Const $g_sSettingsFile = @ScriptDir & "\settings.ini"
+Global Const $g_sLogDir = @ScriptDir & "\log"
+Global $g_iVerboseMode = Number(IniRead($g_sSettingsFile, "Logging", "VerboseMode", "0"))
+Global $g_sLogPath = $g_sLogDir & "\Shutdown_" & @YEAR & @MON & @MDAY & "_" & @HOUR & @MIN & @SEC & "_" & @ComputerName & "_" & @UserName & ".log"
+Global $g_sGitHubRawBase = IniRead($g_sSettingsFile, "Update", "github_raw_base", $g_sGitHubDefaultRawBase)
 If StringStripWS($g_sGitHubRawBase, 3) = "" Then $g_sGitHubRawBase = $g_sGitHubDefaultRawBase
 
+DirCreate($g_sLogDir)
+
 ; Keep settings.ini explicit and self-documenting. The old [Update] path entry is intentionally ignored.
-IniWrite(@ScriptDir & "\settings.ini", "Update", "source", "github")
-IniWrite(@ScriptDir & "\settings.ini", "Update", "github_raw_base", $g_sGitHubRawBase)
+IniWrite($g_sSettingsFile, "Update", "source", "github")
+IniWrite($g_sSettingsFile, "Update", "github_raw_base", $g_sGitHubRawBase)
 
 ; Skip automatic update checks when running the .au3 directly from SciTE/dev mode.
 If Not StringInStr(StringLower(@ScriptName), ".au3") Then
-    _CheckGitHubUpdate()
+    _CheckGitHubUpdate(False)
 EndIf
 
 
@@ -135,7 +141,6 @@ Global $g_aMousePos[2] = [0, 0]
 Global $g_aMousePosHist[2] = [0, 0]
 Global $g_hTimer = TimerInit()
 Global $g_hDLL = DllOpen("user32.dll")
-Global $g_sLogPath = @ScriptDir & "\" & @ComputerName & "_" & @UserName & ".log"
 Global $g_sEndDate = ""
 Global $g_iTotalSeconds = 1
 Global $TimerInHours = "00"
@@ -408,13 +413,8 @@ While 1
 	; ---- Main form events ----
 	Switch $nMsg
 		Case $Button_Update
-			$Updater_File = @ScriptDir & "\Updater.exe"
-			FileInstall("Updater.exe", $Updater_File, 1)
-			Sleep(500)
-			Run($Updater_File)
-;~ 			Run($Updater_File)
-			Sleep(500)
-			Exit
+			_LogInfo("Manual update requested from UI.")
+			_CheckGitHubUpdate(True)
 
 		Case $GUI_EVENT_CLOSE
 			_AppExit()
@@ -497,22 +497,22 @@ While 1
 		Case $Combo_MouseSens
 			$sSens = GUICtrlRead($Combo_MouseSens)
 			RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseSensitivity", "REG_SZ", $sSens)
-			ConsoleWrite("Aqui 1" & @CRLF)
+			_LogVerbose("Mouse sensitivity changed to: " & $sSens)
 
 		Case $Combo_MouseSpeed
 			$sSpd = GUICtrlRead($Combo_MouseSpeed)
 			RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseSpeed", "REG_SZ", $sSpd)
-			ConsoleWrite("Aqui 2" & @CRLF)
+			_LogVerbose("Mouse speed changed to: " & $sSpd)
 
 		Case $Combo_MouseWhisperJiggler
 			$sJSpd = GUICtrlRead($Combo_MouseWhisperJiggler)
 			RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseWhisperSpeed", "REG_SZ", $sJSpd)
-			ConsoleWrite("Aqui 3" & @CRLF)
+			_LogVerbose("Mouse whisper jiggler speed changed to: " & $sJSpd)
 
 		Case $Combo_MouseWhisper
 			$sMWh = GUICtrlRead($Combo_MouseWhisper)
 			RegWrite("HKEY_CURRENT_USER\Software\ShutdownPRJ\", "MouseWhisper", "REG_SZ", $sMWh)
-			ConsoleWrite("Aqui 4" & @CRLF)
+			_LogVerbose("Mouse whisper changed to: " & $sMWh)
 
 
 		Case $Check_Whisper
@@ -646,12 +646,8 @@ EndFunc   ;==>_FormatHMS
 ; =============================================================================
 
 Func _InitLog()
-	If Not FileExists($g_sLogPath) Then
-		Local $hF = FileOpen($g_sLogPath, 10)
-		FileClose($hF)
-		_FileWriteLog($g_sLogPath, "Log file created.")
-	EndIf
-	_FileWriteLog($g_sLogPath, "App started.  Virtual screen: " & $g_iVirtW & "x" & $g_iVirtH & " @ (" & $g_iVirtX & "," & $g_iVirtY & ")")
+	_LogInfo("App started. Virtual screen: " & $g_iVirtW & "x" & $g_iVirtH & " @ (" & $g_iVirtX & "," & $g_iVirtY & ")")
+	_LogVerbose("Logging initialized. VerboseMode=" & $g_iVerboseMode & " | LogPath=" & $g_sLogPath & " | SettingsFile=" & $g_sSettingsFile)
 EndFunc   ;==>_InitLog
 
 Func _CheckRequiredFiles()
@@ -946,7 +942,7 @@ Func _CountDown()
 
 
 
-		ConsoleWrite($g_iMouseCount & "GUICtrlRead($Combo_MouseSens): " & $sMWh & " - Sens: " & $sJSpd & @CRLF)
+		If _IsVerboseLogEnabled() And $g_iMouseCount > 0 And Mod($g_iMouseCount, 30) = 0 Then _LogVerbose("Mouse keep-alive counter=" & $g_iMouseCount & " | Whisper=" & $sMWh & " | Sens=" & $sJSpd)
 
 		If GUICtrlRead($Check_Whisper) = $GUI_CHECKED Then
 			If $g_iMouseCount > Number(GUICtrlRead($Combo_MouseSens)) / 2 Then
