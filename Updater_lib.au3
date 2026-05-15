@@ -7,6 +7,28 @@
 Global $g_oComErr = ObjEvent("AutoIt.Error", "_ComErrorHandler")
 Global $g_sLastComError = ""
 
+; ----------------------------------------------------------------------------------------------------------------------
+; Updater - GitHub based
+; ----------------------------------------------------------------------------------------------------------------------
+; This updater no longer uses a shared network folder. It reads the latest version from GitHub version.txt,
+; downloads the published application executable only when a newer version is available, then lets Updater.exe replace the file.
+Global Const $g_sGitHubDefaultRawBase = "https://raw.githubusercontent.com/fzambroni/Shutdown/main"
+Global Const $g_sUpdateAppName = "shutdown"
+Global Const $g_sPublishedExeName = "shutdown.exe"
+Global Const $g_sSettingsFile = @ScriptDir & "\settings.ini"
+Global Const $g_sLogDir = @ScriptDir & "\log"
+Global $g_iVerboseMode = Number(IniRead($g_sSettingsFile, "Logging", "VerboseMode", "0"))
+Global $g_sLogPath = $g_sLogDir & "\Shutdown_" & @YEAR & @MON & @MDAY & "_" & @HOUR & @MIN & @SEC & "_" & @ComputerName & "_" & @UserName & ".log"
+Global $g_sGitHubRawBase = IniRead($g_sSettingsFile, "Update", "github_raw_base", $g_sGitHubDefaultRawBase)
+If StringStripWS($g_sGitHubRawBase, 3) = "" Then $g_sGitHubRawBase = $g_sGitHubDefaultRawBase
+
+DirCreate($g_sLogDir)
+
+; Keep settings.ini explicit and self-documenting. The old [Update] path entry is intentionally ignored.
+IniWrite($g_sSettingsFile, "Update", "source", "github")
+IniWrite($g_sSettingsFile, "Update", "github_raw_base", $g_sGitHubRawBase)
+IniWrite($g_sSettingsFile, "Update", "published_exe", $g_sPublishedExeName)
+
 Func _ComErrorHandler()
     Local $oErr = $g_oComErr
     $g_sLastComError = "COM Error 0x" & Hex($oErr.number, 8) & ": " & $oErr.description
